@@ -18,7 +18,7 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 // The internal representation of this type is four 64-bit unsigned
 // integers in little-endian order. `Fr` values are always in
 // Montgomery form; i.e., Fr(a) = aR mod r, with R = 2^256.
-#[derive(Clone, Copy, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Fr(pub(crate) [u64; 4]);
 
 /// Constant representing the modulus
@@ -121,7 +121,6 @@ use crate::{
 };
 impl_binops_additive!(Fr, Fr);
 impl_binops_multiplicative!(Fr, Fr);
-#[cfg(not(feature = "asm"))]
 field_common!(
     Fr,
     MODULUS,
@@ -357,5 +356,10 @@ mod test {
                 0xaaaaaaaaaaaaaaaa
             ])
         );
+    }
+
+    #[test]
+    fn test_serialization() {
+        crate::tests::field::random_serialization_test::<Fr>("fr".to_string());
     }
 }
