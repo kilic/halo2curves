@@ -187,12 +187,16 @@ mod test {
     use std::ops::Neg;
 
     use crate::{
-        bn256::{Fr, G1Affine, G1},
+        bn256::{self, Fr, G1Affine, G1},
         multicore,
     };
     use ark_std::{end_timer, start_timer};
     use ff::{Field, PrimeField};
     use group::{Curve, Group};
+    use maybe_rayon::{
+        iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator},
+        slice::{ParallelSlice, ParallelSliceMut},
+    };
     use pasta_curves::arithmetic::CurveAffine;
     use rand_core::OsRng;
 
@@ -317,6 +321,90 @@ mod test {
         }
     }
 
+    fn cu<C: CurveAffine>(coeffs: &[C::Scalar], bases: &[C], acc: &mut C::Curve, c: usize) {
+        let coeffs: Vec<_> = coeffs.iter().map(|a| a.to_repr()).collect();
+
+        fn get_at<F: PrimeField>(segment: usize, c: usize, bytes: &F::Repr) -> usize {
+            let skip_bits = segment * c;
+            let skip_bytes = skip_bits >> 3;
+
+            let mut v = [0; 8];
+            for (v, o) in v.iter_mut().zip(bytes.as_ref()[skip_bytes..].iter()) {
+                *v = *o;
+            }
+
+            let mut tmp = u64::from_le_bytes(v);
+            tmp >>= skip_bits - (skip_bytes * 8);
+            tmp %= 1 << c;
+
+            tmp as usize
+        }
+
+        let segments = (256 / c) + 1;
+        let num_buckets = 1 << c;
+
+        for current_segment in (0..segments).rev() {
+            for _ in 0..c {
+                *acc = acc.double();
+            }
+            println!("current_segment = {}", current_segment);
+
+            let t0 = start_timer!(|| "map ser");
+            // note: serials is faster
+            let mut matrix = coeffs
+                .iter()
+                .map(|repr| get_at::<C::Scalar>(current_segment, c, repr))
+                .enumerate()
+                .collect::<Vec<_>>();
+            end_timer!(t0);
+
+            let t0 = start_timer!(|| "sort par");
+            matrix.par_sort_unstable_by(|a, b| a.1.cmp(&b.1));
+            end_timer!(t0);
+
+            let t0 = start_timer!(|| "ptr");
+            let mut ptr: Vec<usize> = Vec::with_capacity(num_buckets as usize);
+            ptr.push(0);
+            let (mut last, mut ptr_acc) = (0, 0);
+            for (_, bucket_index) in matrix.iter() {
+                if *bucket_index != last {
+                    ptr.push(ptr_acc);
+                    (0..*bucket_index - last - 1).for_each(|_| ptr.push(ptr_acc));
+                    last = *bucket_index;
+                }
+                ptr_acc += 1;
+            }
+            ptr.push(ptr_acc);
+            (0..num_buckets - last - 1).for_each(|_| ptr.push(ptr_acc));
+            end_timer!(t0);
+
+            assert!(ptr.len() == num_buckets + 1);
+            assert!(*ptr.last().unwrap() == bases.len());
+
+            let t0 = start_timer!(|| "bucket sum");
+            let mut buckets = vec![C::Curve::identity(); num_buckets - 1];
+            buckets
+                .par_iter_mut()
+                .zip(ptr.par_windows(2).skip(1))
+                .for_each(|(bucket, ptr)| {
+                    let (off0, off1) = (ptr[0], ptr[1]);
+                    let base_indexes = &matrix[off0..off1];
+                    base_indexes.iter().for_each(|(base_index, _)| {
+                        *bucket += bases[*base_index];
+                    });
+                });
+            end_timer!(t0);
+
+            let t0 = start_timer!(|| "acc");
+            let mut running_sum = C::Curve::identity();
+            for exp in buckets.iter().rev() {
+                running_sum = running_sum + exp;
+                *acc += &running_sum;
+            }
+            end_timer!(t0);
+        }
+    }
+
     #[test]
     fn test_booth_encoding() {
         fn mul(scalar: &Fr, point: &G1Affine, window: usize) -> G1Affine {
@@ -379,21 +467,30 @@ mod test {
             let points = &points[..1 << k];
             let scalars = &scalars[..1 << k];
 
-            let t0 = start_timer!(|| format!("w/  booth k={}", k));
-            let e0 = super::best_multiexp(scalars, points);
+            let t0 = start_timer!(|| format!("zcash serial k={}", k));
+            let mut e0 = C::Curve::identity();
+            multiexp_serial(scalars, points, &mut e0);
             end_timer!(t0);
 
-            let t1 = start_timer!(|| format!("w/o booth k={}", k));
+            let t0 = start_timer!(|| format!("zcash best k={}", k));
             let e1 = best_multiexp(scalars, points);
-            end_timer!(t1);
+            end_timer!(t0);
 
             assert_eq!(e0, e1);
+
+            for c in 11..=11 {
+                let t0 = start_timer!(|| format!("cu   k={} c={}", k, c));
+                let mut e1 = C::Curve::identity();
+                cu(scalars, points, &mut e1, c);
+                end_timer!(t0);
+                assert_eq!(e0, e1)
+            }
         }
     }
 
     #[test]
     fn test_msm_cross() {
-        run_msm_cross::<G1Affine>(10, 18);
-        // run_msm_cross::<G1Affine>(19, 23);
+        let k = 19;
+        run_msm_cross::<G1Affine>(k, k);
     }
 }
