@@ -5,8 +5,10 @@ pub mod hash_to_curve;
 pub mod msm;
 pub mod serde;
 
+pub mod bls12377;
 pub mod bls12381;
 pub mod bn256;
+pub mod bw6;
 pub mod grumpkin;
 pub mod pasta;
 pub mod pluto_eris;

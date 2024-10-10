@@ -15,7 +15,7 @@ use rand::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 crate::impl_gt!(Gt, Fq12, Fr);
-crate::impl_miller_loop_components!(Bls12381, G1, G1Affine, G2, G2Affine, Fq12, Gt, Fr);
+crate::impl_miller_loop_components!(Bls12377, G1, G1Affine, G2, G2Affine, Fq12, Gt, Fr);
 
 impl MillerLoopResult for Fq12 {
     type Gt = Gt;
@@ -28,7 +28,6 @@ impl MillerLoopResult for Fq12 {
                 (i != 0).then(|| acc.cyclotomic_square());
                 (b == 1).then(|| acc *= f);
             }
-            acc.conjugate();
             acc
         }
 
@@ -72,7 +71,7 @@ pub fn multi_miller_loop(terms: &[(&G1Affine, &G2Affine)]) -> Fq12 {
     let terms = terms
         .iter()
         .filter_map(|&(p, q)| {
-            (bool::from(p.is_identity()) || bool::from(q.is_identity())).then_some((*p, *q))
+            (bool::from(p.is_identity()) || bool::from(q.is_identity())).then_some((p, q))
         })
         .collect::<Vec<_>>();
 
@@ -95,23 +94,22 @@ pub fn multi_miller_loop(terms: &[(&G1Affine, &G2Affine)]) -> Fq12 {
         }
     }
 
-    f.conjugate();
     f
 }
 
 fn ell(f: &mut Fq12, coeffs: &(Fq2, Fq2, Fq2), p: &G1Affine) {
     let c0 = coeffs.0.mul_by_base(&p.y);
     let c1 = coeffs.1.mul_by_base(&p.x);
-    Fq12::mul_by_014(f, &coeffs.2, &c1, &c0);
+    Fq12::mul_by_034(f, &c0, &c1, &coeffs.2);
 }
 
 #[cfg(test)]
 mod test {
-    use super::super::{Bls12381, Fr, G1, G2};
+    use super::super::{Bls12377, Fr, G1, G2};
     use super::{multi_miller_loop, Fq12, G1Affine, G2Affine, Gt};
     use ff::Field;
     use group::{prime::PrimeCurveAffine, Curve, Group};
     use pairing::{Engine as _, MillerLoopResult, PairingCurveAffine};
     use rand_core::OsRng;
-    crate::test_pairing!(Bls12381, G1, G1Affine, G2, G2Affine, Fq12, Gt, Fr);
+    crate::test_pairing!(Bls12377, G1, G1Affine, G2, G2Affine, Fq12, Gt, Fr);
 }
