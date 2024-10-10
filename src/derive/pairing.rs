@@ -54,7 +54,6 @@ macro_rules! impl_miller_loop_components {
         }
 
         fn double(f: &mut $base, r: &mut $g2, p: &$g1affine) {
-            use ff::Field;
             let t0 = r.x.square();
             let t1 = r.y.square();
             let t2 = t1.square();
@@ -85,7 +84,6 @@ macro_rules! impl_miller_loop_components {
         }
 
         fn add(f: &mut $base, r: &mut $g2, q: &$g2affine, p: &$g1affine) {
-            use ff::Field;
             let zsquared = r.z.square();
             let ysquared = q.y.square();
             let t0 = zsquared * q.x;

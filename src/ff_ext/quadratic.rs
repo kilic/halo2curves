@@ -243,6 +243,19 @@ impl<F: ff::Field> QuadExtField<F> {
     pub fn conjugate(&mut self) {
         self.c1 = -self.c1;
     }
+
+    #[inline]
+    pub fn mul_assign_by_base(&mut self, e: &F) {
+        self.c0.mul_assign(e);
+        self.c1.mul_assign(e);
+    }
+
+    #[inline]
+    pub fn mul_by_base(&self, e: &F) -> Self {
+        let c0 = self.c0 * e;
+        let c1 = self.c1 * e;
+        Self { c0, c1 }
+    }
 }
 
 impl<F: ExtField> QuadExtField<F>

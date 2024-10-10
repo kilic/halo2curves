@@ -22,9 +22,8 @@ crate::serialize_deserialize_primefield!(Fq);
 crate::impl_from_u64!(Fq);
 crate::impl_from_bool!(Fq);
 
-use ff::Field;
-
 use crate::ff_ext::ExtField;
+use ff::Field;
 const NEGATIVE_ONE: Fq = Fq::ZERO.sub_const(&Fq::ONE);
 impl ExtField for Fq {
     const NON_RESIDUE: Self = NEGATIVE_ONE;

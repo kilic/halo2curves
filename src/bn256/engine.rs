@@ -4,7 +4,7 @@ use crate::bn256::fq12::*;
 use crate::bn256::fq2::*;
 use crate::bn256::fq6::FROBENIUS_COEFF_FQ6_C1;
 use crate::bn256::fr::*;
-use crate::ff::PrimeField;
+use crate::ff::{Field, PrimeField};
 use crate::ff_ext::quadratic::QuadSparseMul;
 use crate::ff_ext::ExtField;
 use crate::group::cofactor::CofactorCurveAffine;
@@ -40,7 +40,6 @@ impl MillerLoopResult for Fq12 {
         let mut f1 = *self;
         f1.conjugate();
 
-        use ff::Field;
         Gt(r.invert()
             .map(|mut f2| {
                 let mut r = f1;

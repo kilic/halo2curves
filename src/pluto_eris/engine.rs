@@ -1,6 +1,5 @@
 #![allow(clippy::suspicious_arithmetic_impl)]
-
-use crate::ff::PrimeField;
+use crate::ff::{Field, PrimeField};
 use crate::ff_ext::quadratic::QuadSparseMul;
 use crate::ff_ext::ExtField;
 use crate::group::cofactor::CofactorCurveAffine;
@@ -14,7 +13,6 @@ use crate::pluto_eris::fq::Fq;
 use core::borrow::Borrow;
 use core::iter::Sum;
 use core::ops::{Add, Mul, Neg, Sub};
-use ff::Field;
 use pairing::{Engine, MillerLoopResult, MultiMillerLoop, PairingCurveAffine};
 use rand_core::RngCore;
 use std::ops::MulAssign;

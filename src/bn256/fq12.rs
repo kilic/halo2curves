@@ -5,6 +5,7 @@ use crate::ff_ext::{
     quadratic::{QuadExtField, QuadExtFieldArith, QuadSparseMul},
     ExtField,
 };
+use ff::Field;
 
 /// -GAMMA is a quadratic non-residue in Fp6. Fp12 = Fp6[X]/(X^2 + GAMMA)
 /// We introduce the variable w such that w^2 = -GAMMA

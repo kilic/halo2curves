@@ -5,6 +5,7 @@ use crate::ff_ext::{
     quadratic::{QuadExtField, QuadExtFieldArith, QuadSparseMul},
     ExtField,
 };
+use ff::Field;
 
 pub type Fq12 = QuadExtField<Fq6>;
 

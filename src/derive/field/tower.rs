@@ -219,7 +219,6 @@ macro_rules! impl_cyclotomic_square {
         impl $tower12 {
             pub fn cyclotomic_square(&mut self) {
                 fn fp4_square(c0: &mut $tower2, c1: &mut $tower2, a0: &$tower2, a1: &$tower2) {
-                    use ff::Field;
                     let t0 = a0.square();
                     let t1 = a1.square();
                     *c0 = t1.mul_by_nonresidue() + t0;

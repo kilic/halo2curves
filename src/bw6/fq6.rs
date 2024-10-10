@@ -106,19 +106,49 @@ pub const FROBENIUS_COEFF_FQ6_C1: [Fq; 6] = [
     ]),
 ];
 
+// #[cfg(test)]
+// mod test {
+//     use super::*;
+//     crate::field_testing_suite!(Fq6, "field_arithmetic");
+//     // extension field-specific
+//     crate::field_testing_suite!(Fq6, "quadratic_sparse_mul", Fq3, Fq);
+//     crate::field_testing_suite!(
+//         Fq6,
+//         "frobenius",
+//         // Frobenius endomorphism power parameter for extension field
+//         //  ϕ: E → E
+//         //  (x, y) ↦ (x^p, y^p)
+//         // p: modulus of base field (Here, Fq::MODULUS)
+//         Fq::MODULUS_LIMBS
+//     );
+// }
+
 #[cfg(test)]
 mod test {
+
+    macro_rules! test_fq12 {
+        ($test:ident, $size: expr) => {
+            paste::paste! {
+            #[test]
+            fn [< $test test >]() {
+                use rand::SeedableRng;
+                use rand_xorshift::XorShiftRng;
+                let mut rng = XorShiftRng::from_seed(crate::tests::SEED);
+                crate::bw6::fq6::test::$test(&mut rng, $size);
+            }
+            }
+        };
+    }
     use super::*;
-    crate::field_testing_suite!(Fq6, "field_arithmetic");
-    // extension field-specific
-    crate::field_testing_suite!(Fq6, "quadratic_sparse_mul", Fq3, Fq);
-    crate::field_testing_suite!(
-        Fq6,
-        "frobenius",
-        // Frobenius endomorphism power parameter for extension field
-        //  ϕ: E → E
-        //  (x, y) ↦ (x^p, y^p)
-        // p: modulus of base field (Here, Fq::MODULUS)
-        Fq::MODULUS_LIMBS
-    );
+    use crate::{arith_test, frobenius_test, setup_f12_test_funcs, test};
+    use ff::Field;
+    use rand::RngCore;
+
+    arith_test!(Fq6);
+
+    // F12 specific
+    setup_f12_test_funcs!(Fq6, Fq3, Fq);
+    test_fq12!(f12_mul_by_014_, 500);
+    test_fq12!(f12_mul_by_034_, 500);
+    frobenius_test!(Fq6, Fq, 8);
 }

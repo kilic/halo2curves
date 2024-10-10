@@ -71,7 +71,11 @@ pub fn multi_miller_loop(terms: &[(&G1Affine, &G2Affine)]) -> Fq12 {
     let terms = terms
         .iter()
         .filter_map(|&(p, q)| {
-            (bool::from(p.is_identity()) || bool::from(q.is_identity())).then_some((p, q))
+            if bool::from(p.is_identity()) || bool::from(q.is_identity()) {
+                None
+            } else {
+                Some((*p, *q))
+            }
         })
         .collect::<Vec<_>>();
 

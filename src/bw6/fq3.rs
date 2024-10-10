@@ -104,25 +104,27 @@ pub const FROBENIUS_COEFF_FQ3_C2: [Fq; 3] = [
 #[cfg(test)]
 mod test {
     use super::*;
-    crate::field_testing_suite!(Fq3, "field_arithmetic");
-    // extension field-specific
-    crate::field_testing_suite!(Fq3, "cubic_sparse_mul", Fq);
-    crate::field_testing_suite!(
-        Fq3,
-        "frobenius",
-        // Frobenius endomorphism power parameter for extension field
-        //  ϕ: E → E
-        //  (x, y) ↦ (x^p, y^p)
-        // p: modulus of base field (Here, Fq::MODULUS)
-        Fq::MODULUS_LIMBS
-    );
+    use crate::{arith_test, frobenius_test, setup_f6_test_funcs, test};
+    use rand_core::RngCore;
 
-    #[test]
-    fn test_fq6_mul_nonresidue() {
-        use ff::Field;
-        let e = Fq3::random(rand_core::OsRng);
-        let a0 = e.mul_by_nonresidue();
-        let a1 = e * Fq3::NON_RESIDUE;
-        assert_eq!(a0, a1);
+    macro_rules! test_fq6 {
+        ($test:ident, $size: expr) => {
+            paste::paste! {
+            #[test]
+            fn [< $test test >]() {
+                use rand::SeedableRng;
+                use rand_xorshift::XorShiftRng;
+                let mut rng = XorShiftRng::from_seed(crate::tests::SEED);
+                crate::bw6::Fq3::test::$test(&mut rng, $size);
+            }
+            }
+        };
     }
+
+    arith_test!(Fq3);
+    setup_f6_test_funcs!(Fq3, Fq);
+    // test_fq6!(f6_mul_nonresidue_, 1000);
+    // test_fq6!(f6_mul_by_1_, 1000);
+    // test_fq6!(f6_mul_by_01_, 1000);
+    frobenius_test!(Fq3, Fq, 10);
 }
